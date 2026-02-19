@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mexican History Masterclass</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+   <div id="app-container" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+       <div id="app"></div>
+
+        <a href="/History_of_Mexico_Presentation.pdf" download class="download-btn">
+        📥 Download PDF
+   </a>
+
+   </div>
+
+   <script>
+        const socket = io();
+        const urlParams = new URLSearchParams(window.location.search);
+        const isHost = urlParams.has('host');
+        const appDiv = document.getElementById('app');
+
+        if (isHost) {
+            // --- HOST VIEW ---
+            appDiv.innerHTML = `
+                <div class="card">
+                    <h1>Host Dashboard</h1>
+                    <p>Current Session: <strong id="sess-display">1</strong></p>
+                    <p>Players Connected: <strong id="player-count">0</strong></p>
+                    <button onclick="socket.emit('nextQuestion')">Push Next Question Manually</button>
+                    <button style="background: #E2725B;" onclick="socket.emit('startSession2')">Switch to Session 2</button>
+                </div>
+            `;
+            socket.on('updateHost', (state) => {
+                document.getElementById('player-count').innerText = Object.keys(state.users).length;
+                document.getElementById('sess-display').innerText = state.session;
+            });
+        } else {
+            // --- PARTICIPANT VIEW ---
+            let myName = '';
+
+            function renderLogin() {
+                appDiv.innerHTML = `
+                    <div class="card">
+                        <h1>History of Mexico</h1>
+                        <p>Enter your name to join the quiz:</p>
+                        <input type="text" id="name" placeholder="Your Name" style="padding:10px; width:80%; margin-bottom:10px;">
+                        <button onclick="join()">Join Session</button>
+                    </div>
+                `;
+            }
+
+            window.join = () => {
+                myName = document.getElementById('name').value || "Guest";
+                socket.emit('join', myName);
+                appDiv.innerHTML = `<div class="card"><h2>Waiting for the host to begin...</h2></div>`;
+            };
+
+            socket.on('newQuestion', (data) => {
+                let html = `<div class="card"><h2>Question ${data.index + 1}</h2><h3>${data.q}</h3>`;
+                data.options.forEach((opt, i) => {
+                    html += `<button onclick="submitAnswer(${i})">${opt}</button>`;
+                });
+                html += `</div>`;
+                appDiv.innerHTML = html;
+            });
+
+            window.submitAnswer = (index) => {
+                socket.emit('answer', index);
+                appDiv.innerHTML = `<div class="card"><h2>Answer recorded!</h2><p>Waiting for the rest of the room...</p></div>`;
+            };
+
+            socket.on('sessionSwitch', () => {
+                appDiv.innerHTML = `<div class="card"><h2>Session 2 Beginning!</h2><p>Let's see how much you learned.</p></div>`;
+            });
+
+            socket.on('endSession', (data) => {
+                if (data.session === 1) {
+                    appDiv.innerHTML = `<div class="card"><h2>Baseline Recorded!</h2><p>Enjoy the presentation. We will test your knowledge again at the end.</p></div>`;
+                } else {
+                    const myData = data.users[socket.id];
+                    let html = `
+                        <div class="card">
+                            <h2>Final Results!</h2>
+                            <p>Pre-Presentation Score: <strong>${myData.score1}</strong></p>
+                            <p>Post-Presentation Score: <strong>${myData.score2}</strong></p>
+                            ${myData.score2 > myData.score1 ? '<h3 style="color:#5B8930;">Excellent improvement!</h3>' : ''}
+                            <hr style="margin: 20px 0;">
+                            <h3>Question Review:</h3>
+                    `;
+
+                    // Generate the individual question breakdown
+                    data.quizData.forEach((q, i) => {
+                        const myAns = myData.answers2[i];
+                        const isCorrect = myAns === q.answer;
+                        html += `
+                            <div style="text-align:left; margin-bottom: 15px; font-size: 14px;">
+                                <strong>${q.q}</strong><br>
+                                You answered: ${q.options[myAns]} ${isCorrect ? '✅' : '❌'}<br>
+                                ${!isCorrect ? `Correct Answer: <em>${q.options[q.answer]}</em>` : ''}
+                            </div>
+                        `;
+                    });
+
+                    html += `</div>`;
+                    appDiv.innerHTML = html;
+                }
+            });
+
+            renderLogin();
+        }
+   </script>
+</body>
+</html>
