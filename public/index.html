@@ -78,37 +78,54 @@
             });
 
             socket.on('endSession', (data) => {
-                if (data.session === 1) {
-                    appDiv.innerHTML = `<div class="card"><h2>Baseline Recorded!</h2><p>Enjoy the presentation. We will test your knowledge again at the end.</p></div>`;
-                } else {
-                    const myData = data.users[socket.id];
-                    let html = `
-                        <div class="card">
-                            <h2>Final Results!</h2>
-                            <p>Pre-Presentation Score: <strong>${myData.score1}</strong></p>
-                            <p>Post-Presentation Score: <strong>${myData.score2}</strong></p>
-                            ${myData.score2 > myData.score1 ? '<h3 style="color:#5B8930;">Excellent improvement!</h3>' : ''}
-                            <hr style="margin: 20px 0;">
-                            <h3>Question Review:</h3>
-                    `;
+    if (data.session === 1) {
+        appDiv.innerHTML = `<div class="card"><h2>Baseline Recorded!</h2><p>Ready for the presentation?</p></div>`;
+    } else {
+        const myData = data.users[socket.id];
+        // Rank by totalPoints
+        const ranking = Object.values(data.users).sort((a, b) => b.totalPoints - a.totalPoints);
+        const allMyAnswers = [...myData.answers1, ...myData.answers2];
 
-                    // Generate the individual question breakdown
-                    data.quizData.forEach((q, i) => {
-                        const myAns = myData.answers2[i];
-                        const isCorrect = myAns === q.answer;
-                        html += `
-                            <div style="text-align:left; margin-bottom: 15px; font-size: 14px;">
-                                <strong>${q.q}</strong><br>
-                                You answered: ${q.options[myAns]} ${isCorrect ? '✅' : '❌'}<br>
-                                ${!isCorrect ? `Correct Answer: <em>${q.options[q.answer]}</em>` : ''}
-                            </div>
-                        `;
-                    });
+        let html = `
+            <div class="card">
+                <h1>🏆 Final Rankings</h1>
+                <table style="width:100%; margin-bottom:20px; border-collapse: collapse;">
+                    <tr style="border-bottom: 2px solid #5B8930; color: #555;">
+                        <th style="padding:10px; text-align:left;">Rank</th>
+                        <th style="text-align:left;">Player</th>
+                        <th style="text-align:right;">Points</th>
+                    </tr>
+                    ${ranking.map((user, i) => `
+                        <tr style="border-bottom: 1px solid #eee; ${user.name === myName ? 'background:#fff8e1; font-weight:bold;' : ''}">
+                            <td style="padding:12px;">${i + 1}</td>
+                            <td>${user.name}</td>
+                            <td style="text-align:right; color:#E2725B;">${user.totalPoints.toLocaleString()}</td>
+                        </tr>
+                    `).join('')}
+                </table>
 
-                    html += `</div>`;
-                    appDiv.innerHTML = html;
-                }
-            });
+                <hr style="width:100%; margin: 20px 0; border:0; border-top:1px dashed #ccc;">
+                
+                <h3>Full Question Review</h3>
+        `;
+
+        data.fullQuizData.forEach((q, i) => {
+            const myAns = allMyAnswers[i];
+            const isCorrect = myAns === q.answer;
+            html += `
+                <div style="text-align:left; margin-bottom: 12px; font-size: 13px; width: 100%; padding: 8px; border-left: 4px solid ${isCorrect ? '#5B8930' : '#E2725B'}; background: #fdfdfd;">
+                    <strong>${i + 1}. ${q.q}</strong><br>
+                    Result: ${myAns !== undefined ? q.options[myAns] : 'Missed'} ${isCorrect ? '✅' : '❌'}
+                    ${!isCorrect ? `<br><small>Correct: ${q.options[q.answer]}</small>` : ''}
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+        appDiv.innerHTML = html;
+    }
+});
+
 
             renderLogin();
         }
