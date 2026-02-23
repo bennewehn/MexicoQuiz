@@ -1,118 +1,44 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Lato:wght@400;700&display=swap');
 
-/* Reset & Box Sizing */
-* {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-}
-
+* { box-sizing: border-box; }
 body {
     background-color: #F4EBD0; 
     font-family: 'Lato', sans-serif;
-    color: #2b2b2b;
     margin: 0;
-    padding: 0;
-    /* Use flexbox to center everything */
     display: flex;
-    justify-content: center; /* Centers horizontally */
-    align-items: center;     /* Centers vertically */
+    justify-content: center;
+    align-items: center;
     min-height: 100vh;
-    width: 100vw;            /* Force full width */
     background-image: radial-gradient(#d3c7a3 1px, transparent 1px);
     background-size: 20px 20px;
-    overflow-x: hidden;      /* Prevent horizontal scroll */
 }
 
-/* Main Card Styling */
 .card {
     background: #fff;
-    padding: 2.5rem 1.5rem;
+    padding: 2rem;
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-    max-width: 500px;
     width: 90%;
-    margin-left: auto;       /* Explicit centering fallback */
-    margin-right: auto;      /* Explicit centering fallback */
-    text-align: center;      /* Fixed typo from previous version */
+    max-width: 500px;
+    text-align: center;
     border-top: 10px solid #5B8930; 
     border-bottom: 10px solid #E2725B; 
-    display: flex;
-    flex-direction: column;
-    align-items: center;
 }
 
-/* Headers */
-h1, h2 {
-    font-family: 'Cinzel', serif;
-    color: #E2725B;
-    margin-top: 0;
-    width: 100%;             /* Ensure text centers inside the flex card */
-}
+/* Host Presentation Styles */
+.host-card { max-width: 900px !important; }
+.host-header { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px; font-size: 1.2rem; }
+.display-q { font-family: 'Cinzel', serif; font-size: 2.2rem; margin: 15px 0; color: #333; }
+.host-options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 25px 0; }
+.host-option-box { background: #f9f9f9; border-left: 5px solid #5B8930; padding: 15px; text-align: left; font-size: 1.1rem; border-radius: 4px; }
+.host-controls { display: flex; gap: 10px; margin-top: 20px; }
 
-h1 { font-size: 1.8rem; }
-h2 { font-size: 1.4rem; }
-
-/* Interactive Buttons */
 button {
     background-color: #5B8930;
-    color: white;
-    border: none;
-    padding: 16px 24px;
-    margin: 10px 0;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 18px; 
-    font-weight: 700;
-    width: 100%;
-    min-height: 56px;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 0 #466b24;
-    display: block;
+    color: white; border: none; padding: 16px; margin: 5px 0;
+    border-radius: 8px; cursor: pointer; font-size: 18px; font-weight: 700;
+    width: 100%; transition: 0.2s; box-shadow: 0 4px 0 #466b24;
 }
+button:active { transform: translateY(2px); box-shadow: 0 2px 0 #466b24; }
 
-button:hover {
-    background-color: #466b24;
-}
-
-button:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 #466b24;
-}
-
-/* The Floating Download Button (FAB) */
-.download-btn {
-    position: fixed;
-    bottom: 25px;
-    right: 25px;
-    background-color: #FFBA00;
-    color: #000;
-    text-decoration: none;
-    padding: 14px 20px;
-    border-radius: 50px;
-    font-weight: bold;
-    font-size: 14px;
-    box-shadow: 0 6px 15px rgba(0,0,0,0.3);
-    z-index: 1000;
-    border: 2px solid #E2725B;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Mobile Adjustments */
-@media screen and (max-width: 600px) {
-    body {
-        padding: 15px; /* Adds a small buffer on mobile */
-    }
-    
-    .card {
-        width: 100%; /* Take full available width of the body's padding */
-        padding: 1.5rem 1rem;
-    }
-
-    button {
-        font-size: 16px;
-        min-height: 50px;
-    }
-}
+.download-btn { position: fixed; bottom: 20px; right: 20px; background: #FFBA00; padding: 12px; border-radius: 50px; text-decoration: none; color: #000; font-weight: bold; font-size: 12px; }

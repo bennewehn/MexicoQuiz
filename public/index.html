@@ -6,129 +6,179 @@
     <title>Mexican History Masterclass</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
+    <style>
+        /* --- ANIMATIONS --- */
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.9) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes pulseBorder {
+            0% { border-color: #5B8930; }
+            50% { border-color: #E2725B; }
+            100% { border-color: #5B8930; }
+        }
+
+        /* Classes to apply animations */
+        .animate-pop { animation: fadeInScale 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        
+        .leaderboard-row { opacity: 0; animation: slideInRight 0.4s ease forwards; }
+        
+        .host-option-box { transition: transform 0.2s; }
+        .host-option-box:hover { transform: translateY(-5px); border-color: #5B8930; }
+
+        .btn-animate { transition: all 0.2s; }
+        .btn-animate:hover { transform: scale(1.03); filter: brightness(1.1); }
+        .btn-animate:active { transform: scale(0.97); }
+
+        .voter-pulse { animation: pulseBorder 2s infinite; }
+    </style>
 </head>
 <body>
    <div id="app-container" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
        <div id="app"></div>
-
-        <a href="/History_of_Mexico_Presentation.pdf" download class="download-btn">
-        📥 Download PDF
-   </a>
-
+       <a href="/History_of_Mexico_Presentation.pdf" download class="download-btn">📥 PDF</a>
    </div>
 
    <script>
-        const socket = io();
-        const urlParams = new URLSearchParams(window.location.search);
-        const isHost = urlParams.has('host');
-        const appDiv = document.getElementById('app');
+    const socket = io();
+    const urlParams = new URLSearchParams(window.location.search);
+    const isHost = urlParams.has('host');
+    const appDiv = document.getElementById('app');
+    let myName = '';
 
-        if (isHost) {
-            // --- HOST VIEW ---
-            appDiv.innerHTML = `
-                <div class="card">
-                    <h1>Host Dashboard</h1>
-                    <p>Current Session: <strong id="sess-display">1</strong></p>
-                    <p>Players Connected: <strong id="player-count">0</strong></p>
-                    <button onclick="socket.emit('nextQuestion')">Push Next Question Manually</button>
-                    <button style="background: #E2725B;" onclick="socket.emit('startSession2')">Switch to Session 2</button>
-                </div>
-            `;
-            socket.on('updateHost', (state) => {
-                document.getElementById('player-count').innerText = Object.keys(state.users).length;
-                document.getElementById('sess-display').innerText = state.session;
-            });
-        } else {
-            // --- PARTICIPANT VIEW ---
-            let myName = '';
-
-            function renderLogin() {
-                appDiv.innerHTML = `
-                    <div class="card">
-                        <h1>History of Mexico</h1>
-                        <p>Enter your name to join the quiz:</p>
-                        <input type="text" id="name" placeholder="Your Name" style="padding:10px; width:80%; margin-bottom:10px;">
-                        <button onclick="join()">Join Session</button>
-                    </div>
-                `;
-            }
-
-            window.join = () => {
-                myName = document.getElementById('name').value || "Guest";
-                socket.emit('join', myName);
-                appDiv.innerHTML = `<div class="card"><h2>Waiting for the host to begin...</h2></div>`;
-            };
-
-            socket.on('newQuestion', (data) => {
-                let html = `<div class="card"><h2>Question ${data.index + 1}</h2><h3>${data.q}</h3>`;
-                data.options.forEach((opt, i) => {
-                    html += `<button onclick="submitAnswer(${i})">${opt}</button>`;
-                });
-                html += `</div>`;
-                appDiv.innerHTML = html;
-            });
-
-            window.submitAnswer = (index) => {
-                socket.emit('answer', index);
-                appDiv.innerHTML = `<div class="card"><h2>Answer recorded!</h2><p>Waiting for the rest of the room...</p></div>`;
-            };
-
-            socket.on('sessionSwitch', () => {
-                appDiv.innerHTML = `<div class="card"><h2>Session 2 Beginning!</h2><p>Let's see how much you learned.</p></div>`;
-            });
-
-            socket.on('endSession', (data) => {
-    if (data.session === 1) {
-        appDiv.innerHTML = `<div class="card"><h2>Baseline Recorded!</h2><p>Ready for the presentation?</p></div>`;
-    } else {
-        const myData = data.users[socket.id];
-        // Rank by totalPoints
-        const ranking = Object.values(data.users).sort((a, b) => b.totalPoints - a.totalPoints);
-        const allMyAnswers = [...myData.answers1, ...myData.answers2];
+    function renderHost(state) {
+        if (!isHost) return;
+        const users = Object.values(state.users);
+        const joinedCount = users.length;
+        const votedCount = users.filter(u => u.hasAnswered).length;
+        const currentQ = state.currentQuestion;
 
         let html = `
-            <div class="card">
-                <h1>🏆 Final Rankings</h1>
-                <table style="width:100%; margin-bottom:20px; border-collapse: collapse;">
-                    <tr style="border-bottom: 2px solid #5B8930; color: #555;">
-                        <th style="padding:10px; text-align:left;">Rank</th>
-                        <th style="text-align:left;">Player</th>
-                        <th style="text-align:right;">Points</th>
-                    </tr>
-                    ${ranking.map((user, i) => `
-                        <tr style="border-bottom: 1px solid #eee; ${user.name === myName ? 'background:#fff8e1; font-weight:bold;' : ''}">
-                            <td style="padding:12px;">${i + 1}</td>
-                            <td>${user.name}</td>
-                            <td style="text-align:right; color:#E2725B;">${user.totalPoints.toLocaleString()}</td>
-                        </tr>
-                    `).join('')}
-                </table>
-
-                <hr style="width:100%; margin: 20px 0; border:0; border-top:1px dashed #ccc;">
-                
-                <h3>Full Question Review</h3>
+            <div class="card host-card animate-pop">
+                <div class="host-header ${votedCount > 0 && votedCount < joinedCount ? 'voter-pulse' : ''}">
+                    <span>Session: <strong>${state.session}</strong></span>
+                    <span>Players: <strong>${joinedCount}</strong></span>
+                    <span>Votes: <strong style="color: #E2725B;">${votedCount} / ${joinedCount}</strong></span>
+                </div>
         `;
 
-        data.fullQuizData.forEach((q, i) => {
-            const myAns = allMyAnswers[i];
-            const isCorrect = myAns === q.answer;
+        if (state.questionIndex === -1) {
             html += `
-                <div style="text-align:left; margin-bottom: 12px; font-size: 13px; width: 100%; padding: 8px; border-left: 4px solid ${isCorrect ? '#5B8930' : '#E2725B'}; background: #fdfdfd;">
-                    <strong>${i + 1}. ${q.q}</strong><br>
-                    Result: ${myAns !== undefined ? q.options[myAns] : 'Missed'} ${isCorrect ? '✅' : '❌'}
-                    ${!isCorrect ? `<br><small>Correct: ${q.options[q.answer]}</small>` : ''}
+                <h1>${state.session === 1 ? 'Session 1 Lobby' : 'Session 2 Lobby'}</h1>
+                <p>Waiting for everyone to be ready...</p>
+                <button class="btn-animate" onclick="socket.emit('nextQuestion')">Start Session ${state.session}</button>
+                <button class="btn-animate" style="background:#666; font-size:12px; margin-top:20px;" onclick="socket.emit('resetGame')">Emergency Full Reset</button>
+            `;
+        } else if (currentQ) {
+            html += `
+                <div class="presentation-content">
+                    <h2 style="color: #5B8930; margin:0;">Question ${state.questionIndex + 1}</h2>
+                    <h1 class="display-q">${currentQ.q}</h1>
+                    <div class="host-options-grid">
+                        ${currentQ.options.map((opt, i) => `
+                            <div class="host-option-box" style="animation-delay: ${i * 0.1}s">
+                                <strong>${i+1}.</strong> ${opt}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <div class="host-controls">
+                    <button class="btn-animate" onclick="socket.emit('nextQuestion')">Skip Question →</button>
                 </div>
             `;
-        });
-
+        }
         html += `</div>`;
         appDiv.innerHTML = html;
     }
-});
 
+    // --- SOCKET LISTENERS ---
 
-            renderLogin();
+    socket.on('updateHost', (state) => { if (isHost) renderHost(state); });
+
+    socket.on('newQuestion', (data) => {
+        if (!isHost) {
+            let html = `
+                <div class="card animate-pop">
+                    <h2>Question ${data.index + 1}</h2>
+                    <h3>${data.q}</h3>
+                    <div style="display: flex; flex-direction: column; width: 100%;">
+            `;
+            data.options.forEach((opt, i) => {
+                html += `<button class="btn-animate" onclick="submitAnswer(${i})">${opt}</button>`;
+            });
+            html += `</div></div>`;
+            appDiv.innerHTML = html;
         }
+    });
+
+    socket.on('gameReset', () => {
+        if (!isHost) {
+            appDiv.innerHTML = `
+                <div class="card animate-pop">
+                    <h1>History of Mexico</h1>
+                    <input type="text" id="name" placeholder="Enter Name" style="padding:12px; width:80%; margin-bottom:15px; border-radius:5px; border:1px solid #ccc;">
+                    <button class="btn-animate" onclick="join()">Join Quiz</button>
+                </div>
+            `;
+        }
+    });
+
+    socket.on('sessionSwitch', () => {
+        if (!isHost) appDiv.innerHTML = `<div class="card animate-pop"><h2>Session 1 Complete!</h2><p>Wait for Session 2...</p></div>`;
+    });
+
+    socket.on('endSession', (data) => {
+        const ranking = Object.values(data.users).sort((a, b) => b.totalPoints - a.totalPoints);
+        let html = `
+            <div class="card animate-pop" style="max-width:650px;">
+                <h1>🏆 ${data.session === 1 ? 'Session 1 Rankings' : 'Session 2 FINAL Rankings'}</h1>
+                <table style="width:100%; border-collapse: collapse; margin-top:20px;">
+                    <tr style="border-bottom: 2px solid #5B8930;"><th>Rank</th><th>Name</th><th style="text-align:right;">Score</th></tr>
+                    ${ranking.map((u, i) => `
+                        <tr class="leaderboard-row" style="animation-delay: ${i * 0.15}s; border-bottom: 1px solid #eee; ${u.name === myName ? 'background:#fff8e1;' : ''}">
+                            <td style="padding:10px;">${i+1}</td><td>${u.name}</td><td style="text-align:right;">${u.totalPoints}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+        `;
+
+        if (isHost) {
+            if (data.session === 1) {
+                html += `<button class="btn-animate" style="margin-top:20px;" onclick="socket.emit('startSession2')">Reset Scores & Start Session 2</button>`;
+            } else {
+                html += `<button class="btn-animate" style="margin-top:20px; background:#E2725B;" onclick="socket.emit('resetGame')">New Game</button>`;
+            }
+        }
+        html += `</div>`;
+        appDiv.innerHTML = html;
+    });
+
+    if (!isHost) {
+        appDiv.innerHTML = `
+            <div class="card animate-pop">
+                <h1>History of Mexico</h1>
+                <input type="text" id="name" placeholder="Enter Name" style="padding:12px; width:80%; margin-bottom:15px; border-radius:5px; border:1px solid #ccc;">
+                <button class="btn-animate" onclick="join()">Join Quiz</button>
+            </div>
+        `;
+
+        window.join = () => {
+            myName = document.getElementById('name').value || "Guest";
+            socket.emit('join', myName);
+            appDiv.innerHTML = `<div class="card animate-pop"><h2>Welcome!</h2><p>Watch the screen.</p></div>`;
+        };
+
+        window.submitAnswer = (i) => {
+            socket.emit('answer', i);
+            appDiv.innerHTML = `<div class="card animate-pop"><h2>Answer Sent!</h2><p>Waiting...</p></div>`;
+        };
+    }
    </script>
 </body>
 </html>
