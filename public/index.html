@@ -7,36 +7,19 @@
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        /* --- ANIMATIONS --- */
         @keyframes fadeInScale {
             from { opacity: 0; transform: scale(0.9) translateY(20px); }
             to { opacity: 1; transform: scale(1) translateY(0); }
         }
-
-        @keyframes slideInRight {
-            from { opacity: 0; transform: translateX(30px); }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
             to { opacity: 1; transform: translateX(0); }
         }
-
-        @keyframes pulseBorder {
-            0% { border-color: #5B8930; }
-            50% { border-color: #E2725B; }
-            100% { border-color: #5B8930; }
-        }
-
-        /* Classes to apply animations */
         .animate-pop { animation: fadeInScale 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        
-        .leaderboard-row { opacity: 0; animation: slideInRight 0.4s ease forwards; }
-        
-        .host-option-box { transition: transform 0.2s; }
-        .host-option-box:hover { transform: translateY(-5px); border-color: #5B8930; }
-
+        .leaderboard-row { opacity: 0; animation: slideIn 0.4s ease forwards; }
         .btn-animate { transition: all 0.2s; }
         .btn-animate:hover { transform: scale(1.03); filter: brightness(1.1); }
         .btn-animate:active { transform: scale(0.97); }
-
-        .voter-pulse { animation: pulseBorder 2s infinite; }
     </style>
 </head>
 <body>
@@ -50,7 +33,9 @@
     const urlParams = new URLSearchParams(window.location.search);
     const isHost = urlParams.has('host');
     const appDiv = document.getElementById('app');
+    
     let myName = '';
+    let lastRenderedQuestion = -2;
 
     function renderHost(state) {
         if (!isHost) return;
@@ -59,9 +44,12 @@
         const votedCount = users.filter(u => u.hasAnswered).length;
         const currentQ = state.currentQuestion;
 
+        const shouldAnimate = state.questionIndex !== lastRenderedQuestion;
+        if (shouldAnimate) lastRenderedQuestion = state.questionIndex;
+
         let html = `
-            <div class="card host-card animate-pop">
-                <div class="host-header ${votedCount > 0 && votedCount < joinedCount ? 'voter-pulse' : ''}">
+            <div class="card host-card ${shouldAnimate ? 'animate-pop' : ''}">
+                <div class="host-header" style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:20px;">
                     <span>Session: <strong>${state.session}</strong></span>
                     <span>Players: <strong>${joinedCount}</strong></span>
                     <span>Votes: <strong style="color: #E2725B;">${votedCount} / ${joinedCount}</strong></span>
@@ -79,58 +67,42 @@
             html += `
                 <div class="presentation-content">
                     <h2 style="color: #5B8930; margin:0;">Question ${state.questionIndex + 1}</h2>
-                    <h1 class="display-q">${currentQ.q}</h1>
-                    <div class="host-options-grid">
+                    <h1 class="display-q" style="font-family:'Cinzel', serif; font-size: 2rem; margin:15px 0;">${currentQ.q}</h1>
+                    <div class="host-options-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin:20px 0;">
                         ${currentQ.options.map((opt, i) => `
-                            <div class="host-option-box" style="animation-delay: ${i * 0.1}s">
+                            <div class="host-option-box" style="background:#f9f9f9; padding:15px; border-left:5px solid #5B8930; border-radius:4px; text-align:left;">
                                 <strong>${i+1}.</strong> ${opt}
                             </div>
                         `).join('')}
                     </div>
                 </div>
-                <div class="host-controls">
-                    <button class="btn-animate" onclick="socket.emit('nextQuestion')">Skip Question →</button>
-                </div>
+                <div class="host-controls"><button class="btn-animate" onclick="socket.emit('nextQuestion')">Skip Question →</button></div>
             `;
         }
         html += `</div>`;
         appDiv.innerHTML = html;
     }
 
-    // --- SOCKET LISTENERS ---
-
     socket.on('updateHost', (state) => { if (isHost) renderHost(state); });
 
     socket.on('newQuestion', (data) => {
         if (!isHost) {
-            let html = `
-                <div class="card animate-pop">
-                    <h2>Question ${data.index + 1}</h2>
-                    <h3>${data.q}</h3>
-                    <div style="display: flex; flex-direction: column; width: 100%;">
-            `;
-            data.options.forEach((opt, i) => {
-                html += `<button class="btn-animate" onclick="submitAnswer(${i})">${opt}</button>`;
-            });
+            let html = `<div class="card animate-pop"><h2>Question ${data.index + 1}</h2><h3>${data.q}</h3><div style="display: flex; flex-direction: column; width: 100%;">`;
+            data.options.forEach((opt, i) => { html += `<button class="btn-animate" onclick="submitAnswer(${i})">${opt}</button>`; });
             html += `</div></div>`;
             appDiv.innerHTML = html;
         }
     });
 
     socket.on('gameReset', () => {
+        lastRenderedQuestion = -2;
         if (!isHost) {
-            appDiv.innerHTML = `
-                <div class="card animate-pop">
-                    <h1>History of Mexico</h1>
-                    <input type="text" id="name" placeholder="Enter Name" style="padding:12px; width:80%; margin-bottom:15px; border-radius:5px; border:1px solid #ccc;">
-                    <button class="btn-animate" onclick="join()">Join Quiz</button>
-                </div>
-            `;
+            appDiv.innerHTML = `<div class="card animate-pop"><h1>History of Mexico</h1><input type="text" id="name" placeholder="Enter Name" style="padding:12px; width:80%; margin-bottom:15px;"><button class="btn-animate" onclick="join()">Join Quiz</button></div>`;
         }
     });
 
     socket.on('sessionSwitch', () => {
-        if (!isHost) appDiv.innerHTML = `<div class="card animate-pop"><h2>Session 1 Complete!</h2><p>Wait for Session 2...</p></div>`;
+        if (!isHost) appDiv.innerHTML = `<div class="card animate-pop"><h2>Session 1 Complete!</h2><p>Wait for the host to start Session 2...</p></div>`;
     });
 
     socket.on('endSession', (data) => {
@@ -140,44 +112,20 @@
                 <h1>🏆 ${data.session === 1 ? 'Session 1 Rankings' : 'Session 2 FINAL Rankings'}</h1>
                 <table style="width:100%; border-collapse: collapse; margin-top:20px;">
                     <tr style="border-bottom: 2px solid #5B8930;"><th>Rank</th><th>Name</th><th style="text-align:right;">Score</th></tr>
-                    ${ranking.map((u, i) => `
-                        <tr class="leaderboard-row" style="animation-delay: ${i * 0.15}s; border-bottom: 1px solid #eee; ${u.name === myName ? 'background:#fff8e1;' : ''}">
-                            <td style="padding:10px;">${i+1}</td><td>${u.name}</td><td style="text-align:right;">${u.totalPoints}</td>
-                        </tr>
-                    `).join('')}
+                    ${ranking.map((u, i) => `<tr class="leaderboard-row" style="animation-delay:${i*0.1}s; border-bottom:1px solid #eee; ${u.name === myName ? 'background:#fff8e1;' : ''}"><td style="padding:10px;">${i+1}</td><td>${u.name}</td><td style="text-align:right;">${u.totalPoints}</td></tr>`).join('')}
                 </table>
         `;
-
         if (isHost) {
-            if (data.session === 1) {
-                html += `<button class="btn-animate" style="margin-top:20px;" onclick="socket.emit('startSession2')">Reset Scores & Start Session 2</button>`;
-            } else {
-                html += `<button class="btn-animate" style="margin-top:20px; background:#E2725B;" onclick="socket.emit('resetGame')">New Game</button>`;
-            }
+            html += (data.session === 1) ? `<button class="btn-animate" style="margin-top:20px;" onclick="socket.emit('startSession2')">Reset Scores & Start Session 2</button>` : `<button class="btn-animate" style="margin-top:20px; background:#E2725B;" onclick="socket.emit('resetGame')">New Game</button>`;
         }
         html += `</div>`;
         appDiv.innerHTML = html;
     });
 
     if (!isHost) {
-        appDiv.innerHTML = `
-            <div class="card animate-pop">
-                <h1>History of Mexico</h1>
-                <input type="text" id="name" placeholder="Enter Name" style="padding:12px; width:80%; margin-bottom:15px; border-radius:5px; border:1px solid #ccc;">
-                <button class="btn-animate" onclick="join()">Join Quiz</button>
-            </div>
-        `;
-
-        window.join = () => {
-            myName = document.getElementById('name').value || "Guest";
-            socket.emit('join', myName);
-            appDiv.innerHTML = `<div class="card animate-pop"><h2>Welcome!</h2><p>Watch the screen.</p></div>`;
-        };
-
-        window.submitAnswer = (i) => {
-            socket.emit('answer', i);
-            appDiv.innerHTML = `<div class="card animate-pop"><h2>Answer Sent!</h2><p>Waiting...</p></div>`;
-        };
+        appDiv.innerHTML = `<div class="card animate-pop"><h1>History of Mexico</h1><input type="text" id="id-name" placeholder="Enter Name" style="padding:12px; width:80%; margin-bottom:15px; border-radius:5px; border:1px solid #ccc;"><button class="btn-animate" onclick="join()">Join Quiz</button></div>`;
+        window.join = () => { myName = document.getElementById('id-name').value || "Guest"; socket.emit('join', myName); appDiv.innerHTML = `<div class="card animate-pop"><h2>Welcome!</h2><p>Watch the screen.</p></div>`; };
+        window.submitAnswer = (i) => { socket.emit('answer', i); appDiv.innerHTML = `<div class="card animate-pop"><h2>Answer Sent!</h2><p>Waiting...</p></div>`; };
     }
    </script>
 </body>
