@@ -33,6 +33,8 @@ const session2Questions = [
     { q: "Was geschah während der sogenannten „Descena Trágica“ im Jahr 1913?", options: ["Der Sieg Pancho Villas im Norden", "Der Verrat durch Victoriano Huerta und die Ermordung Maderos", "Die Verabschiedung der modernen Verfassung Mexikos", "Die Kapitulation der Zapatisten"], answer: 1},
     {q : "Wer folgte als Anführer der Aufständigen nach Miguel Hidalgo?", options: ["Napoleon", "José Maria Morelos", "Alfonso Diego Velázquez", "Agustín de Iturbide"], answer: 1},
     {q : "Wer wurde neben Hidalgo zur Hinrichtung 1811 verurteilt?", options: ["Diego Alatriste & Iñigo Balboa", "Bernarda Alba & Adela Duarte", "Juan Aldama & Ignacio Allende", "Simón Bolívar & José de San Martín"], answer: 2},
+    {q : "Woraus wird Obsidian hergestellt?", options: ["Aus Vulkangestein", "Aus Lava", "Aus Vulkanischem Glas", "Aus schnell abkühlender Lava"], answer: 3},
+    {q : "Welches Volk errichtete beeindruckende steinerne Monumente?", options: ["Olmeken", "Zapotheken", "Tolteken", "Teotihuacan"], answer: 2},
 ];
 
 function advanceQuestion() {
