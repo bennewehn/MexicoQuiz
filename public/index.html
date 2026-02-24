@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mexican History Masterclass</title>
+    <title>Winter School Querétaro: Mexican History</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
     <style>
@@ -20,6 +20,10 @@
         .btn-animate { transition: all 0.2s; }
         .btn-animate:hover { transform: scale(1.03); filter: brightness(1.1); }
         .btn-animate:active { transform: scale(0.97); }
+
+        /* Added Styles for Branding */
+        .school-badge { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: #E2725B; font-weight: 800; margin-bottom: 5px; display: block; }
+        .group-names { font-size: 0.9rem; color: #666; margin-top: 15px; font-style: italic; border-top: 1px solid #eee; padding-top: 10px; }
     </style>
 </head>
 <body>
@@ -34,6 +38,10 @@
     const isHost = urlParams.has('host');
     const appDiv = document.getElementById('app');
     
+    // UPDATE YOUR NAMES HERE
+    const groupNames = "Presented by: Benedikt Wehner, Bozok Bozkus, Carina Kröning, Christian Ostertag, Christos Sarakatsanos, David Önaktug, Matti Betz";
+    const eventLocation = "Winter School 2026 • Querétaro, Mexico";
+
     let myName = '';
     let lastRenderedQuestion = -2;
 
@@ -50,7 +58,7 @@
         let html = `
             <div class="card host-card ${shouldAnimate ? 'animate-pop' : ''}">
                 <div class="host-header" style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:20px;">
-                    <span>Session: <strong>${state.session}</strong></span>
+                    <div><span class="school-badge">Winter School QRO</span><strong>Session ${state.session}</strong></div>
                     <span>Players: <strong>${joinedCount}</strong></span>
                     <span>Votes: <strong style="color: #E2725B;">${votedCount} / ${joinedCount}</strong></span>
                 </div>
@@ -58,9 +66,11 @@
 
         if (state.questionIndex === -1) {
             html += `
-                <h1>${state.session === 1 ? 'Session 1 Lobby' : 'Session 2 Lobby'}</h1>
+                <h1>Mexican History Masterclass</h1>
+                <h3 style="color: #5B8930;">${eventLocation}</h3>
                 <p>Waiting for everyone to be ready...</p>
                 <button class="btn-animate" onclick="socket.emit('nextQuestion')">Start Session ${state.session}</button>
+                <p class="group-names">${groupNames}</p>
                 <button class="btn-animate" style="background:#666; font-size:12px; margin-top:20px;" onclick="socket.emit('resetGame')">Emergency Full Reset</button>
             `;
         } else if (currentQ) {
@@ -97,7 +107,7 @@
     socket.on('gameReset', () => {
         lastRenderedQuestion = -2;
         if (!isHost) {
-            appDiv.innerHTML = `<div class="card animate-pop"><h1>History of Mexico</h1><input type="text" id="name" placeholder="Enter Name" style="padding:12px; width:80%; margin-bottom:15px;"><button class="btn-animate" onclick="join()">Join Quiz</button></div>`;
+            appDiv.innerHTML = `<div class="card animate-pop"><span class="school-badge">Winter School • Querétaro</span><h1>Mexican History</h1><input type="text" id="name" placeholder="Enter Name" style="padding:12px; width:80%; margin-bottom:15px;"><button class="btn-animate" onclick="join()">Join Quiz</button><p class="group-names">${groupNames}</p></div>`;
         }
     });
 
@@ -109,11 +119,14 @@
         const ranking = Object.values(data.users).sort((a, b) => b.totalPoints - a.totalPoints);
         let html = `
             <div class="card animate-pop" style="max-width:650px;">
+                <span class="school-badge">Final Rankings</span>
                 <h1>🏆 ${data.session === 1 ? 'Session 1 Rankings' : 'Session 2 FINAL Rankings'}</h1>
+                <p style="font-size: 0.8rem;">${eventLocation}</p>
                 <table style="width:100%; border-collapse: collapse; margin-top:20px;">
                     <tr style="border-bottom: 2px solid #5B8930;"><th>Rank</th><th>Name</th><th style="text-align:right;">Score</th></tr>
                     ${ranking.map((u, i) => `<tr class="leaderboard-row" style="animation-delay:${i*0.1}s; border-bottom:1px solid #eee; ${u.name === myName ? 'background:#fff8e1;' : ''}"><td style="padding:10px;">${i+1}</td><td>${u.name}</td><td style="text-align:right;">${u.totalPoints}</td></tr>`).join('')}
                 </table>
+                <p class="group-names">${groupNames}</p>
         `;
         if (isHost) {
             html += (data.session === 1) ? `<button class="btn-animate" style="margin-top:20px;" onclick="socket.emit('startSession2')">Reset Scores & Start Session 2</button>` : `<button class="btn-animate" style="margin-top:20px; background:#E2725B;" onclick="socket.emit('resetGame')">New Game</button>`;
@@ -123,9 +136,9 @@
     });
 
     if (!isHost) {
-        appDiv.innerHTML = `<div class="card animate-pop"><h1>History of Mexico</h1><input type="text" id="id-name" placeholder="Enter Name" style="padding:12px; width:80%; margin-bottom:15px; border-radius:5px; border:1px solid #ccc;"><button class="btn-animate" onclick="join()">Join Quiz</button></div>`;
-        window.join = () => { myName = document.getElementById('id-name').value || "Guest"; socket.emit('join', myName); appDiv.innerHTML = `<div class="card animate-pop"><h2>Welcome!</h2><p>Watch the screen.</p></div>`; };
-        window.submitAnswer = (i) => { socket.emit('answer', i); appDiv.innerHTML = `<div class="card animate-pop"><h2>Answer Sent!</h2><p>Waiting...</p></div>`; };
+        appDiv.innerHTML = `<div class="card animate-pop"><span class="school-badge">Winter School • Querétaro</span><h1>Mexican History</h1><input type="text" id="id-name" placeholder="Enter Name" style="padding:12px; width:80%; margin-bottom:15px; border-radius:5px; border:1px solid #ccc;"><button class="btn-animate" onclick="join()">Join Quiz</button><p class="group-names">${groupNames}</p></div>`;
+        window.join = () => { myName = document.getElementById('id-name').value || "Guest"; socket.emit('join', myName); appDiv.innerHTML = `<div class="card animate-pop"><h2>Welcome ${myName}!</h2><p>Watch the main screen for the presentation.</p><p style="font-size: 0.8rem; margin-top: 20px;">${eventLocation}</p></div>`; };
+        window.submitAnswer = (i) => { socket.emit('answer', i); appDiv.innerHTML = `<div class="card animate-pop"><h2>Answer Sent!</h2><p>Waiting for the results...</p></div>`; };
     }
    </script>
 </body>
